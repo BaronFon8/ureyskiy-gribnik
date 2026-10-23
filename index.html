@@ -586,7 +586,7 @@
                 if (this.clicked) return false;
                 let dx = mx - this.x;
                 let dy = my - this.y;
-                // УВЕЛИЧЕНА ЗОНА КЛИКА: с 1.3 до 1.5 для лучшего попадания пальцем
+                // УВЕЛИЧЕНА ЗОНА КЛИКА (1.5 радиуса) для удобства пальцев
                 return Math.sqrt(dx * dx + dy * dy) < this.radius * 1.5;
             }
 
@@ -709,8 +709,8 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Улучшенная функция обработки ввода
-        function handleInput(clientX, clientY) {
+        // Улучшенная функция обработки ввода (принимает координаты)
+        function processTouch(clientX, clientY) {
             if (!isGameRunning) return;
             
             let rect = canvas.getBoundingClientRect();
@@ -728,35 +728,35 @@
                 }
             }
             
-            // Если попали хотя бы в один гриб - обновляем счет и звук
             if (hitCount > 0) {
                 scoreDisplay.innerText = score;
                 playSound('pop');
             }
         }
 
-        // Слушатели для мыши (ПК)
+        // Обработка мыши (ПК)
         canvas.addEventListener('mousedown', (e) => {
-            handleInput(e.clientX, e.clientY);
+            processTouch(e.clientX, e.clientY);
         });
 
-        // Слушатели для тача (Телефоны)
+        // Обработка касаний (Телефоны) - ПОДДЕРЖКА МУЛЬТИТАЧА
         canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); 
-            // Берем первое касание
-            if (e.touches.length > 0) {
-                handleInput(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault();
+            // Перебираем ВСЕ пальцы, которые коснулись экрана
+            for (let i = 0; i < e.touches.length; i++) {
+                processTouch(e.touches[i].clientX, e.touches[i].clientY);
             }
         }, { passive: false });
 
-        // ДОБАВЛЕНО: Обработка движения пальца, чтобы клик засчитывался, даже если палец чуть сдвинулся
+        // Обработка движения пальцев (если палец поехал, все равно режем)
         canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault(); 
-            if (e.touches.length > 0) {
-                handleInput(e.touches[0].clientX, e.touches[0].clientY);
+            e.preventDefault();
+            for (let i = 0; i < e.touches.length; i++) {
+                processTouch(e.touches[i].clientX, e.touches[i].clientY);
             }
         }, { passive: false });
 
+        // --- Кнопки меню ---
         const addTap = (btn, callback) => {
             btn.addEventListener('touchstart', (e) => { e.preventDefault(); callback(); }, { passive: false });
             btn.addEventListener('click', callback);
