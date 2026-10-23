@@ -265,7 +265,7 @@
             <div id="start-screen" class="menu-box">
                 <h1>УРЕЙСКИЙ ГРИБНИК</h1>
                 <p>Кликай по падающим грибам!</p>
-                <p style="color: #e74c3c;">Не урони гриб — потеряешь жизнь!</p>
+                <p style="color: #e74c3c;">Не упускай гриб</p>
                 
                 <hr style="border-color: #555; margin: 15px 0;">
                 <p style="margin-bottom: 5px;">ВЫБЕРИ СЛОЖНОСТЬ:</p>
@@ -485,10 +485,11 @@
         let mushrooms = [];
         let particles = [];
 
+        // Обновленные типы грибов
         const mushroomTypes = [
             { name: 'Маслёнок', stem: '#d4a373', cap: '#8b4513', dots: false, points: 10, capType: 'round' },
-            { name: 'Рыжик', stem: '#f5cba7', cap: '#e67e22', dots: false, points: 15, capType: 'flat' },
-            { name: 'Груздь', stem: '#fdfefe', cap: '#f0f3f4', dots: true, points: 20, capType: 'flat' },
+            { name: 'Рыжик', stem: '#f5cba7', cap: '#e67e22', dots: false, points: 15, capType: 'chanterelle' }, 
+            { name: 'Груздь', stem: '#fdfefe', cap: '#f0f3f4', dots: true, points: 20, capType: 'milkcap' }, 
             { name: 'Подосиновик', stem: '#ecf0f1', cap: '#c0392b', dots: false, points: 25, capType: 'round' }
         ];
 
@@ -530,11 +531,13 @@
                 let stemW = r * 0.35;
                 let stemH = r * 0.9;
 
+                // Тень
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.beginPath();
                 ctx.ellipse(0, stemH/2, r * 0.8, r * 0.2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
+                // Ножка
                 ctx.fillStyle = this.type.stem;
                 ctx.beginPath();
                 ctx.moveTo(-stemW/2, 0);
@@ -543,37 +546,80 @@
                 ctx.lineTo(stemW/2, 0);
                 ctx.fill();
 
+                // Текстура ножки
                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
                 ctx.fillRect(-stemW/4, 0, 2, stemH);
                 ctx.fillRect(stemW/4, 0, 2, stemH);
 
+                // --- ОТРИСОВКА ШЛЯПОК ---
                 ctx.fillStyle = this.type.cap;
-                ctx.beginPath();
+                
                 if (this.type.capType === 'round') {
+                    // Масленок и Подосиновик
+                    ctx.beginPath();
                     ctx.arc(0, 0, r, Math.PI, 0);
                     ctx.fill();
+                    
                     ctx.fillStyle = 'rgba(0,0,0,0.2)';
                     ctx.beginPath();
                     ctx.ellipse(0, 0, r, r * 0.2, 0, 0, Math.PI * 2);
                     ctx.fill();
-                } else {
-                    ctx.ellipse(0, -r * 0.1, r * 1.1, r * 0.4, 0, Math.PI, 0);
-                    ctx.fill();
+
+                } else if (this.type.capType === 'chanterelle') {
+                    // РЫЖИК: Воронкообразная шляпка БЕЗ зеленых пятен
                     ctx.beginPath();
-                    ctx.ellipse(0, 0, r * 1.1, r * 0.15, 0, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.moveTo(-r * 1.1, 0);
+                    ctx.quadraticCurveTo(-r * 1.1, -r * 0.8, -r * 0.4, -r * 0.6);
+                    ctx.quadraticCurveTo(0, -r * 0.5, r * 0.4, -r * 0.6);
+                    ctx.quadraticCurveTo(r * 1.1, -r * 0.8, r * 1.1, 0);
                     ctx.fill();
+
+                    // Углубление в центре (воронка)
+                    ctx.fillStyle = '#b85c15'; // Темно-оранжевый
+                    ctx.beginPath();
+                    ctx.ellipse(0, -r * 0.2, r * 0.3, r * 0.15, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (this.type.capType === 'milkcap') {
+                    // ГРУЗДЬ: Плоская шляпка с ворсистым краем
+                    ctx.beginPath();
+                    ctx.ellipse(0, -r * 0.1, r * 1.1, r * 0.4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Ворсистый край
+                    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                    ctx.lineWidth = 2;
+                    for (let i = 0; i < 10; i++) {
+                        let angle = (i / 10) * Math.PI * 2;
+                        let startX = Math.cos(angle) * (r * 1.1);
+                        let startY = Math.sin(angle) * (r * 0.4) - r * 0.1;
+                        let endX = Math.cos(angle) * (r * 1.2);
+                        let endY = Math.sin(angle) * (r * 0.45) - r * 0.1;
+                        ctx.beginPath();
+                        ctx.moveTo(startX, startY);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+                    }
+
+                    // Концентрические круги
+                    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.ellipse(0, -r * 0.1, r * 0.8, r * 0.3, 0, 0, Math.PI * 2);
+                    ctx.stroke();
                 }
 
+                // Крапинки (для груздя)
                 if (this.type.dots) {
                     ctx.fillStyle = '#bdc3c7';
                     ctx.beginPath();
-                    ctx.arc(-r * 0.4, -r * 0.3, r * 0.1, 0, Math.PI * 2);
-                    ctx.arc(r * 0.3, -r * 0.4, r * 0.12, 0, Math.PI * 2);
-                    ctx.arc(0, -r * 0.1, r * 0.08, 0, Math.PI * 2);
+                    ctx.arc(-r * 0.4, -r * 0.3, r * 0.08, 0, Math.PI * 2);
+                    ctx.arc(r * 0.3, -r * 0.4, r * 0.1, 0, Math.PI * 2);
+                    ctx.arc(0, -r * 0.1, r * 0.06, 0, Math.PI * 2);
                     ctx.fill();
                 }
 
+                // Блик
                 ctx.fillStyle = 'rgba(255,255,255,0.3)';
                 ctx.beginPath();
                 ctx.ellipse(-r * 0.3, -r * 0.5, r * 0.2, r * 0.1, -Math.PI/4, 0, Math.PI * 2);
@@ -586,7 +632,6 @@
                 if (this.clicked) return false;
                 let dx = mx - this.x;
                 let dy = my - this.y;
-                // УВЕЛИЧЕНА ЗОНА КЛИКА (1.5 радиуса) для удобства пальцев
                 return Math.sqrt(dx * dx + dy * dy) < this.radius * 1.5;
             }
 
@@ -709,7 +754,6 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // Улучшенная функция обработки ввода (принимает координаты)
         function processTouch(clientX, clientY) {
             if (!isGameRunning) return;
             
@@ -718,7 +762,6 @@
             let my = clientY - rect.top;
 
             let hitCount = 0;
-            // Проверяем все грибы
             for (let i = mushrooms.length - 1; i >= 0; i--) {
                 let m = mushrooms[i];
                 if (!m.clicked && m.checkClick(mx, my)) {
@@ -734,21 +777,17 @@
             }
         }
 
-        // Обработка мыши (ПК)
         canvas.addEventListener('mousedown', (e) => {
             processTouch(e.clientX, e.clientY);
         });
 
-        // Обработка касаний (Телефоны) - ПОДДЕРЖКА МУЛЬТИТАЧА
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            // Перебираем ВСЕ пальцы, которые коснулись экрана
             for (let i = 0; i < e.touches.length; i++) {
                 processTouch(e.touches[i].clientX, e.touches[i].clientY);
             }
         }, { passive: false });
 
-        // Обработка движения пальцев (если палец поехал, все равно режем)
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             for (let i = 0; i < e.touches.length; i++) {
@@ -756,7 +795,6 @@
             }
         }, { passive: false });
 
-        // --- Кнопки меню ---
         const addTap = (btn, callback) => {
             btn.addEventListener('touchstart', (e) => { e.preventDefault(); callback(); }, { passive: false });
             btn.addEventListener('click', callback);
@@ -772,7 +810,6 @@
             startScreen.classList.remove('hidden');
         });
 
-        // Инициализация при загрузке
         window.addEventListener('load', () => {
             resizeCanvas();
             updateLeaderboardUI(); 
