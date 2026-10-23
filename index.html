@@ -216,7 +216,7 @@
             border-color: #e74c3c;
         }
 
-        /* Кнопка сохранения */
+        /* Кнопка сохранения - ЗЕЛЕНАЯ */
         #save-score-btn {
             background-color: #27ae60;
             box-shadow: 0 5px 0 #1e8449;
@@ -307,7 +307,7 @@
         }
         .record-row:last-child { border-bottom: none; }
         
-        /* Обновленные стили для таблицы рекордов (чтобы влез ник) */
+        /* Обновленные стили для таблицы рекордов */
         .record-rank { color: #f1c40f; width: 25px; text-align: left; }
         .record-name { color: #fff; flex-grow: 1; text-align: left; margin: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
         .record-score { color: #e74c3c; width: 40px; text-align: right; }
@@ -384,11 +384,11 @@
                 <p>Твой результат: <span id="final-score" style="color:#f1c40f; font-size: 24px;">0</span> очков</p>
                 <p id="phrase-text" style="color: #f1c40f; font-size: 13px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
                 
-                <!-- НОВЫЙ БЛОК: Ввод имени и сохранение -->
+                <!-- Блок сохранения -->
                 <div id="save-score-block">
                     <input type="text" id="name-input" placeholder="Введите имя" maxlength="10">
                     <button id="save-score-btn" style="justify-content: center;">
-                        <span>СОХРАНИТЬ РЕКОРД</span>
+                        <span id="save-btn-text">СОХРАНИТЬ РЕКОРД</span>
                     </button>
                 </div>
                 
@@ -492,7 +492,6 @@
                 if (record.diff === 'easy') diffName = 'ДОРОЖ';
                 if (record.diff === 'hard') diffName = 'УРЕЙСК';
                 
-                // Защита от старых рекордов, где не было имени
                 let playerName = record.name ? record.name : 'Аноним';
 
                 row.innerHTML = `
@@ -508,7 +507,6 @@
         function saveScore(finalScore, difficulty, playerName) {
             if (finalScore === 0) return; 
             
-            // Если имя пустое, ставим "Аноним"
             if (!playerName || playerName.trim() === '') {
                 playerName = 'Аноним';
             }
@@ -521,7 +519,6 @@
             updateLeaderboardUI();
         }
 
-        // Запоминаем имя игрока
         let currentPlayerName = '';
         try { currentPlayerName = localStorage.getItem('mushroomPlayerName') || ''; } catch(e) {}
 
@@ -540,10 +537,10 @@
         const restartBtn = document.getElementById('restart-btn');
         const menuBtn = document.getElementById('menu-btn');
         
-        // Элементы для ввода имени
         const nameInput = document.getElementById('name-input');
         const saveScoreBtn = document.getElementById('save-score-btn');
         const saveScoreBlock = document.getElementById('save-score-block');
+        const saveBtnText = document.getElementById('save-btn-text'); // Текст внутри кнопки
 
         const finalScoreEl = document.getElementById('final-score');
         const phraseTextEl = document.getElementById('phrase-text');
@@ -580,7 +577,7 @@
         let spawnInterval = 60, fallSpeedBase = 2.0, maxMushrooms = 7;
         let mushrooms = [], particles = [], touchRipples = [];
         let streak = 0, squirrelTimer = 0, timeOfDay = 0, dayCycleTimer = 0;
-        let scoreAlreadySaved = false; // Флаг, чтобы не сохранить 2 раза
+        let scoreAlreadySaved = false;
 
         let squirrel = {
             active: false, x: -50, y: -50, targetX: 0, targetY: 0, state: 'idle', timer: 0
@@ -810,11 +807,16 @@
             playSound('gameover');
             phraseTextEl.innerText = phrases[Math.floor(Math.random() * phrases.length)];
             
-            // Показываем окно с вводом имени, если результат > 0
             if (score > 0) {
                 saveScoreBlock.style.display = 'block';
-                nameInput.value = currentPlayerName; // Подставляем прошлое имя
+                nameInput.value = currentPlayerName;
                 scoreAlreadySaved = false;
+                
+                // СБРОС КНОПКИ СОХРАНЕНИЯ В ЗЕЛЕНЫЙ ЦВЕТ
+                saveBtnText.innerText = 'СОХРАНИТЬ РЕКОРД';
+                saveScoreBtn.style.backgroundColor = '#27ae60';
+                saveScoreBtn.style.boxShadow = '0 5px 0 #1e8449';
+                saveScoreBtn.disabled = false;
             } else {
                 saveScoreBlock.style.display = 'none';
             }
@@ -986,22 +988,22 @@
         addTap(restartBtn, () => startGame(currentDifficulty));
         addTap(menuBtn, () => { gameOverScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); });
 
-        // --- СОХРАНЕНИЕ РЕКОРДА ---
+        // СОХРАНЕНИЕ РЕКОРДА
         addTap(saveScoreBtn, () => {
             if (scoreAlreadySaved) return;
             
             let playerName = nameInput.value.trim();
             if (playerName === '') playerName = 'Аноним';
             
-            // Сохраняем имя для следующих разов
             currentPlayerName = playerName;
             try { localStorage.setItem('mushroomPlayerName', playerName); } catch(e) {}
             
-            // Сохраняем результат в таблицу
             saveScore(score, currentDifficulty, playerName);
             
             scoreAlreadySaved = true;
-            saveScoreBtn.innerText = 'СОХРАНЕНО!';
+            saveBtnText.innerText = 'СОХРАНЕНО!';
+            
+            // Меняем цвет на серый после сохранения
             saveScoreBtn.style.backgroundColor = '#7f8c8d';
             saveScoreBtn.style.boxShadow = '0 5px 0 #566573';
         });
