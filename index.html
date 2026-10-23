@@ -20,6 +20,7 @@
             overflow: hidden;
             touch-action: none;
             user-select: none;
+            -webkit-user-select: none;
         }
 
         #game-container {
@@ -585,7 +586,8 @@
                 if (this.clicked) return false;
                 let dx = mx - this.x;
                 let dy = my - this.y;
-                return Math.sqrt(dx * dx + dy * dy) < this.radius * 1.3;
+                // УВЕЛИЧЕНА ЗОНА КЛИКА: с 1.3 до 1.5 для лучшего попадания пальцем
+                return Math.sqrt(dx * dx + dy * dy) < this.radius * 1.5;
             }
 
             pop() {
@@ -707,18 +709,16 @@
             requestAnimationFrame(gameLoop);
         }
 
-        function handleInput(e) {
+        // Улучшенная функция обработки ввода
+        function handleInput(clientX, clientY) {
             if (!isGameRunning) return;
             
             let rect = canvas.getBoundingClientRect();
-            let clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-            let clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-
             let mx = clientX - rect.left;
             let my = clientY - rect.top;
 
-            // ИСПРАВЛЕНИЕ: Убрали break, чтобы можно было лопать сразу несколько грибов
             let hitCount = 0;
+            // Проверяем все грибы
             for (let i = mushrooms.length - 1; i >= 0; i--) {
                 let m = mushrooms[i];
                 if (!m.clicked && m.checkClick(mx, my)) {
@@ -728,16 +728,34 @@
                 }
             }
             
-            // Обновляем счет и играем звук только если попали хотя бы в один
+            // Если попали хотя бы в один гриб - обновляем счет и звук
             if (hitCount > 0) {
                 scoreDisplay.innerText = score;
                 playSound('pop');
             }
         }
 
-        // Слушатели
-        canvas.addEventListener('mousedown', handleInput);
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e); }, { passive: false });
+        // Слушатели для мыши (ПК)
+        canvas.addEventListener('mousedown', (e) => {
+            handleInput(e.clientX, e.clientY);
+        });
+
+        // Слушатели для тача (Телефоны)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); 
+            // Берем первое касание
+            if (e.touches.length > 0) {
+                handleInput(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        // ДОБАВЛЕНО: Обработка движения пальца, чтобы клик засчитывался, даже если палец чуть сдвинулся
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); 
+            if (e.touches.length > 0) {
+                handleInput(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
 
         const addTap = (btn, callback) => {
             btn.addEventListener('touchstart', (e) => { e.preventDefault(); callback(); }, { passive: false });
