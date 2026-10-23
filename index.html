@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Грибная Забайкальская Охота</title>
+    <title>Урейский Грибник</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
 
@@ -262,7 +262,7 @@
         <div id="ui-layer">
             <!-- Экран Старта -->
             <div id="start-screen" class="menu-box">
-                <h1>ГРИБНАЯ ОХОТА</h1>
+                <h1>УРЕЙСКИЙ ГРИБНИК</h1>
                 <p>Кликай по падающим грибам!</p>
                 <p style="color: #e74c3c;">Не урони гриб — потеряешь жизнь!</p>
                 
@@ -717,15 +717,21 @@
             let mx = clientX - rect.left;
             let my = clientY - rect.top;
 
+            // ИСПРАВЛЕНИЕ: Убрали break, чтобы можно было лопать сразу несколько грибов
+            let hitCount = 0;
             for (let i = mushrooms.length - 1; i >= 0; i--) {
                 let m = mushrooms[i];
                 if (!m.clicked && m.checkClick(mx, my)) {
                     m.pop();
                     score += m.type.points;
-                    scoreDisplay.innerText = score;
-                    playSound('pop');
-                    break;
+                    hitCount++;
                 }
+            }
+            
+            // Обновляем счет и играем звук только если попали хотя бы в один
+            if (hitCount > 0) {
+                scoreDisplay.innerText = score;
+                playSound('pop');
             }
         }
 
