@@ -485,6 +485,9 @@
         let mushrooms = [];
         let particles = [];
 
+        // Визуальные эффекты для касаний (чтобы видеть, что игра реагирует)
+        let touchRipples = [];
+
         const mushroomTypes = [
             { name: 'Маслёнок', stem: '#d4a373', cap: '#8b4513', dots: false, points: 10, capType: 'round' },
             { name: 'Рыжик', stem: '#f5cba7', cap: '#e67e22', dots: false, points: 15, capType: 'chanterelle' }, 
@@ -614,28 +617,27 @@
                 ctx.restore();
             }
 
-            // УЛУЧШЕННАЯ ПРОВЕРКА КЛИКА (МАГНИТНЫЙ ЭФФЕКТ)
+            // ОЧЕНЬ ЧЕТКИЙ ХИТБОКС
             checkClick(mx, my) {
                 if (this.clicked) return false;
                 let dx = mx - this.x;
                 let dy = my - this.y;
                 let distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Радиус клика УВЕЛИЧЕН до 2.0 (было 1.5)
-                // Если расстояние до центра меньше 2-х радиусов, засчитываем
-                return distance < this.radius * 2.0;
+                // Радиус клика увеличен до 2.5 (очень щедро, чтобы точно попадать)
+                return distance < this.radius * 2.5;
             }
 
             pop() {
                 this.clicked = true;
                 this.opacity = 0;
-                for (let i = 0; i < 12; i++) {
+                for (let i = 0; i < 15; i++) {
                     particles.push({
                         x: this.x, y: this.y,
-                        vx: (Math.random() - 0.5) * 10,
-                        vy: (Math.random() - 0.5) * 10,
+                        vx: (Math.random() - 0.5) * 12,
+                        vy: (Math.random() - 0.5) * 12,
                         color: this.type.cap,
-                        life: 1.0, size: Math.random() * 6 + 2
+                        life: 1.0, size: Math.random() * 8 + 2
                     });
                 }
             }
@@ -703,6 +705,7 @@
             lives = 3;
             mushrooms = [];
             particles = [];
+            touchRipples = [];
             spawnTimer = 0;
             
             scoreDisplay.innerText = score;
@@ -740,6 +743,21 @@
                     ctx.globalAlpha = 1;
                     if (p.life <= 0 || p.size < 1) particles.splice(i, 1);
                 }
+
+                // Отрисовка кругов от касаний (визуальный отклик)
+                for (let i = touchRipples.length - 1; i >= 0; i--) {
+                    let r = touchRipples[i];
+                    r.radius += 2;
+                    r.life -= 0.05;
+                    
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(241, 196, 15, ${r.life})`;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    
+                    if (r.life <= 0) touchRipples.splice(i, 1);
+                }
             }
 
             requestAnimationFrame(gameLoop);
@@ -751,6 +769,9 @@
             let rect = canvas.getBoundingClientRect();
             let mx = clientX - rect.left;
             let my = clientY - rect.top;
+
+            // Добавляем визуальный круг на место касания
+            touchRipples.push({ x: mx, y: my, radius: 5, life: 1.0 });
 
             let hitCount = 0;
             for (let i = mushrooms.length - 1; i >= 0; i--) {
@@ -768,17 +789,20 @@
             }
         }
 
+        // --- ОБРАБОТКА КАСАНИЙ (МУЛЬТИТАЧ) ---
         canvas.addEventListener('mousedown', (e) => {
             processTouch(e.clientX, e.clientY);
         });
 
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            // Перебираем ВСЕ пальцы, которые коснулись экрана
             for (let i = 0; i < e.touches.length; i++) {
                 processTouch(e.touches[i].clientX, e.touches[i].clientY);
             }
         }, { passive: false });
 
+        // Если палец сдвинулся (частая проблема при тапе), все равно режем грибы
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             for (let i = 0; i < e.touches.length; i++) {
