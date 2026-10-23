@@ -197,6 +197,37 @@
             gap: 5px;
         }
 
+        /* Стили для ввода имени */
+        #name-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 2px solid #f1c40f;
+            background: #333;
+            color: white;
+            font-family: 'Russo One', sans-serif;
+            font-size: 16px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        #name-input:focus {
+            outline: none;
+            border-color: #e74c3c;
+        }
+
+        /* Кнопка сохранения */
+        #save-score-btn {
+            background-color: #27ae60;
+            box-shadow: 0 5px 0 #1e8449;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        #save-score-btn:active {
+            background-color: #1e8449;
+            box-shadow: 0 0px 0 #1e8449;
+        }
+
         button {
             font-family: 'Russo One', sans-serif;
             font-size: 15px;
@@ -272,11 +303,15 @@
             border-bottom: 1px dashed rgba(255,255,255,0.2);
             font-family: sans-serif;
             font-weight: bold;
+            align-items: center;
         }
         .record-row:last-child { border-bottom: none; }
-        .record-rank { color: #f1c40f; width: 20px; text-align: left; }
-        .record-score { color: #e74c3c; }
-        .record-diff { color: #bdc3c7; font-size: 10px; text-transform: uppercase; }
+        
+        /* Обновленные стили для таблицы рекордов (чтобы влез ник) */
+        .record-rank { color: #f1c40f; width: 25px; text-align: left; }
+        .record-name { color: #fff; flex-grow: 1; text-align: left; margin: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
+        .record-score { color: #e74c3c; width: 40px; text-align: right; }
+        .record-diff { color: #bdc3c7; font-size: 10px; text-transform: uppercase; width: 60px; text-align: right; }
 
         .hidden {
             display: none !important;
@@ -348,6 +383,16 @@
                 <h1>КОРЗИНА ПУСТА!</h1>
                 <p>Твой результат: <span id="final-score" style="color:#f1c40f; font-size: 24px;">0</span> очков</p>
                 <p id="phrase-text" style="color: #f1c40f; font-size: 13px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
+                
+                <!-- НОВЫЙ БЛОК: Ввод имени и сохранение -->
+                <div id="save-score-block">
+                    <input type="text" id="name-input" placeholder="Введите имя" maxlength="10">
+                    <button id="save-score-btn" style="justify-content: center;">
+                        <span>СОХРАНИТЬ РЕКОРД</span>
+                    </button>
+                </div>
+                
+                <hr style="border-color: #555; margin: 15px 0;">
                 
                 <button id="restart-btn" style="justify-content: center;">
                     <span>ИГРАТЬ СНОВА</span>
@@ -428,7 +473,7 @@
             } catch(e) {}
         }
 
-        // --- СИСТЕМА РЕЙТИНГА ---
+        // --- СИСТЕМА РЕЙТИНГА С НИКАМИ ---
         const recordsList = document.getElementById('records-list');
         let leaderboard = [];
         try { leaderboard = JSON.parse(localStorage.getItem('mushroomLeaderboard')) || []; } catch(e) { leaderboard = []; }
@@ -442,20 +487,43 @@
             leaderboard.slice(0, 5).forEach((record, index) => {
                 const row = document.createElement('div');
                 row.className = 'record-row';
-                let diffName = record.diff === 'easy' ? 'ДОРОЖНОЕ' : (record.diff === 'hard' ? 'УРЕЙСК' : 'АКША');
-                row.innerHTML = `<span class="record-rank">#${index + 1}</span><span class="record-score">${record.score}</span><span class="record-diff">${diffName}</span>`;
+                
+                let diffName = 'АКША';
+                if (record.diff === 'easy') diffName = 'ДОРОЖ';
+                if (record.diff === 'hard') diffName = 'УРЕЙСК';
+                
+                // Защита от старых рекордов, где не было имени
+                let playerName = record.name ? record.name : 'Аноним';
+
+                row.innerHTML = `
+                    <span class="record-rank">#${index + 1}</span>
+                    <span class="record-name">${playerName}</span>
+                    <span class="record-score">${record.score}</span>
+                    <span class="record-diff">${diffName}</span>
+                `;
                 recordsList.appendChild(row);
             });
         }
 
-        function saveScore(finalScore, difficulty) {
+        function saveScore(finalScore, difficulty, playerName) {
             if (finalScore === 0) return; 
-            leaderboard.push({ score: finalScore, diff: difficulty });
+            
+            // Если имя пустое, ставим "Аноним"
+            if (!playerName || playerName.trim() === '') {
+                playerName = 'Аноним';
+            }
+
+            leaderboard.push({ name: playerName, score: finalScore, diff: difficulty });
             leaderboard.sort((a, b) => b.score - a.score);
             leaderboard = leaderboard.slice(0, 10);
+            
             try { localStorage.setItem('mushroomLeaderboard', JSON.stringify(leaderboard)); } catch(e) {}
             updateLeaderboardUI();
         }
+
+        // Запоминаем имя игрока
+        let currentPlayerName = '';
+        try { currentPlayerName = localStorage.getItem('mushroomPlayerName') || ''; } catch(e) {}
 
         // --- ОСНОВНАЯ ЛОГИКА ---
         const canvas = document.getElementById('gameCanvas');
@@ -472,6 +540,11 @@
         const restartBtn = document.getElementById('restart-btn');
         const menuBtn = document.getElementById('menu-btn');
         
+        // Элементы для ввода имени
+        const nameInput = document.getElementById('name-input');
+        const saveScoreBtn = document.getElementById('save-score-btn');
+        const saveScoreBlock = document.getElementById('save-score-block');
+
         const finalScoreEl = document.getElementById('final-score');
         const phraseTextEl = document.getElementById('phrase-text');
         const hud = document.getElementById('hud');
@@ -507,6 +580,7 @@
         let spawnInterval = 60, fallSpeedBase = 2.0, maxMushrooms = 7;
         let mushrooms = [], particles = [], touchRipples = [];
         let streak = 0, squirrelTimer = 0, timeOfDay = 0, dayCycleTimer = 0;
+        let scoreAlreadySaved = false; // Флаг, чтобы не сохранить 2 раза
 
         let squirrel = {
             active: false, x: -50, y: -50, targetX: 0, targetY: 0, state: 'idle', timer: 0
@@ -658,35 +732,27 @@
             }
         }
 
-        // --- ОТРИСОВКА БЕЛКИ (УВЕЛИЧЕНА) ---
         function drawSquirrel() {
             if (!squirrel.active) return;
-
             ctx.save();
             ctx.translate(squirrel.x, squirrel.y);
-            
-            // Размер белки увеличен с 15 до 25
             let r = 25 * scaleFactor; 
 
-            // Хвост (оранжевый, пушистый)
             ctx.fillStyle = '#d35400';
             ctx.beginPath();
             ctx.ellipse(-r * 0.8, -r * 0.2, r * 0.7, r * 0.4, -Math.PI/4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Тело (рыжее)
             ctx.fillStyle = '#e67e22';
             ctx.beginPath();
             ctx.ellipse(0, 0, r * 0.6, r * 0.45, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Голова
             ctx.fillStyle = '#e67e22';
             ctx.beginPath();
             ctx.arc(r * 0.4, -r * 0.1, r * 0.35, 0, Math.PI * 2);
             ctx.fill();
 
-            // Уши (большие)
             ctx.fillStyle = '#d35400';
             ctx.beginPath();
             ctx.moveTo(r * 0.35, -r * 0.45);
@@ -700,19 +766,16 @@
             ctx.lineTo(r * 0.8, -r * 0.4);
             ctx.fill();
 
-            // Глаз
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(r * 0.5, -r * 0.15, r * 0.1, 0, Math.PI * 2);
             ctx.fill();
 
-            // Блик в глазу
             ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(r * 0.53, -r * 0.18, r * 0.03, 0, Math.PI * 2);
             ctx.fill();
 
-            // Лапки
             ctx.fillStyle = '#d35400';
             ctx.fillRect(-r * 0.2, r * 0.35, r * 0.25, r * 0.25);
             ctx.fillRect(r * 0.1, r * 0.35, r * 0.25, r * 0.25);
@@ -746,7 +809,16 @@
             finalScoreEl.innerText = score;
             playSound('gameover');
             phraseTextEl.innerText = phrases[Math.floor(Math.random() * phrases.length)];
-            saveScore(score, currentDifficulty);
+            
+            // Показываем окно с вводом имени, если результат > 0
+            if (score > 0) {
+                saveScoreBlock.style.display = 'block';
+                nameInput.value = currentPlayerName; // Подставляем прошлое имя
+                scoreAlreadySaved = false;
+            } else {
+                saveScoreBlock.style.display = 'none';
+            }
+
             hud.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
         }
@@ -910,8 +982,29 @@
         addTap(btnEasy, () => startGame('easy'));
         addTap(btnNormal, () => startGame('normal'));
         addTap(btnHard, () => startGame('hard'));
+        
         addTap(restartBtn, () => startGame(currentDifficulty));
         addTap(menuBtn, () => { gameOverScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); });
+
+        // --- СОХРАНЕНИЕ РЕКОРДА ---
+        addTap(saveScoreBtn, () => {
+            if (scoreAlreadySaved) return;
+            
+            let playerName = nameInput.value.trim();
+            if (playerName === '') playerName = 'Аноним';
+            
+            // Сохраняем имя для следующих разов
+            currentPlayerName = playerName;
+            try { localStorage.setItem('mushroomPlayerName', playerName); } catch(e) {}
+            
+            // Сохраняем результат в таблицу
+            saveScore(score, currentDifficulty, playerName);
+            
+            scoreAlreadySaved = true;
+            saveScoreBtn.innerText = 'СОХРАНЕНО!';
+            saveScoreBtn.style.backgroundColor = '#7f8c8d';
+            saveScoreBtn.style.boxShadow = '0 5px 0 #566573';
+        });
 
         window.addEventListener('load', () => { resizeCanvas(); updateLeaderboardUI(); gameLoop(); });
         resizeCanvas(); updateLeaderboardUI(); gameLoop();
