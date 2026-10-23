@@ -1,0 +1,763 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Грибная Забайкальская Охота</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Russo+One&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            height: 100dvh;
+            background-color: #1a1a1a;
+            font-family: 'Russo One', sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            max-width: 800px;
+            max-height: 100vh;
+            overflow: hidden;
+            background: #2c3e50;
+        }
+
+        @media (min-width: 800px) {
+            #game-container {
+                width: 800px;
+                height: 600px;
+                border: 4px solid #fff;
+                box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            }
+        }
+
+        /* Пиксельный фон */
+        #background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('bg.jpg');
+            background-size: cover;
+            background-position: center;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            filter: contrast(1.3) saturate(1.4) blur(2px) brightness(0.6);
+            z-index: 1;
+        }
+
+        #pixel-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(0,0,0,0.15) 2px, transparent 2px),
+                linear-gradient(90deg, rgba(0,0,0,0.15) 2px, transparent 2px);
+            background-size: 6px 6px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Интерфейс */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 4;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 5;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .hud-item {
+            background: rgba(0,0,0,0.7);
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 3px solid #f1c40f;
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .menu-box {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px 20px;
+            border: 4px solid #f1c40f;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            pointer-events: auto;
+            width: 90%;
+            max-width: 480px;
+            box-sizing: border-box;
+            box-shadow: 0 0 30px rgba(241, 196, 15, 0.5);
+            max-height: 95vh;
+            overflow-y: auto;
+        }
+        
+        .menu-box::-webkit-scrollbar { width: 0px; }
+
+        h1 {
+            font-size: 22px;
+            margin-bottom: 10px;
+            color: #f1c40f;
+            text-shadow: 3px 3px 0px #e74c3c;
+            line-height: 1.3;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: #f1c40f;
+            margin: 10px 0 5px 0;
+        }
+
+        p {
+            font-size: 13px;
+            margin: 8px 0;
+            line-height: 1.5;
+            color: #ecf0f1;
+        }
+
+        button {
+            font-family: 'Russo One', sans-serif;
+            font-size: 15px;
+            padding: 12px 15px;
+            margin-top: 8px;
+            background-color: #e74c3c;
+            color: white;
+            border: 3px solid white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.1s;
+            width: 100%;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 5px 0 #c0392b;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+        }
+
+        button:active {
+            background-color: #c0392b;
+            transform: translateY(5px);
+            box-shadow: 0 0px 0 #c0392b;
+        }
+
+        .btn-easy { background-color: #27ae60; box-shadow: 0 5px 0 #1e8449; }
+        .btn-easy:active { background-color: #1e8449; box-shadow: 0 0px 0 #1e8449; }
+        
+        .btn-hard { background-color: #8e44ad; box-shadow: 0 5px 0 #6c3483; }
+        .btn-hard:active { background-color: #6c3483; box-shadow: 0 0px 0 #6c3483; }
+
+        /* Стили для цветных эмодзи */
+        .btn-icon {
+            font-size: 28px;
+            line-height: 1;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+        }
+
+        .btn-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .difficulty-desc {
+            font-size: 11px;
+            color: rgba(255,255,255,0.8);
+            margin-top: 2px;
+            font-family: sans-serif;
+            font-weight: normal;
+        }
+
+        #leaderboard {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .record-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            padding: 4px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            font-family: sans-serif;
+            font-weight: bold;
+        }
+        .record-row:last-child { border-bottom: none; }
+        .record-rank { color: #f1c40f; width: 20px; text-align: left; }
+        .record-score { color: #e74c3c; }
+        .record-diff { color: #bdc3c7; font-size: 10px; text-transform: uppercase; }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="background"></div>
+        <div id="pixel-grid"></div>
+        
+        <div id="hud" class="hidden">
+            <div class="hud-item">🍄 СЧЁТ: <span id="score-display" style="color:#f1c40f;">0</span></div>
+            <div class="hud-item">❤️ ЖИЗНИ: <span id="lives-display" style="color:#e74c3c;">3</span></div>
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui-layer">
+            <!-- Экран Старта -->
+            <div id="start-screen" class="menu-box">
+                <h1>ГРИБНАЯ ОХОТА</h1>
+                <p>Кликай по падающим грибам!</p>
+                <p style="color: #e74c3c;">Не урони гриб — потеряешь жизнь!</p>
+                
+                <hr style="border-color: #555; margin: 15px 0;">
+                <p style="margin-bottom: 5px;">ВЫБЕРИ СЛОЖНОСТЬ:</p>
+                
+                <!-- Дорожное (Легко) - Грузовик -->
+                <button id="btn-easy" class="btn-easy">
+                    <div class="btn-icon">🚚</div>
+                    <div class="btn-text">
+                        <span>ДОРОЖНОЕ</span>
+                        <span class="difficulty-desc">(Для прогулки)</span>
+                    </div>
+                </button>
+                
+                <!-- Акша (Средне) - Ёлочка -->
+                <button id="btn-normal">
+                    <div class="btn-icon">🌲</div>
+                    <div class="btn-text">
+                        <span>АКША</span>
+                        <span class="difficulty-desc">(Обычный лес)</span>
+                    </div>
+                </button>
+                
+                <!-- Урейск (Сложно) - Гриб -->
+                <button id="btn-hard" class="btn-hard">
+                    <div class="btn-icon">🍄</div>
+                    <div class="btn-text">
+                        <span>УРЕЙСК</span>
+                        <span class="difficulty-desc">(Хардкор)</span>
+                    </div>
+                </button>
+
+                <div id="leaderboard">
+                    <h2>🏆 ТОП ОХОТНИКОВ</h2>
+                    <div id="records-list">
+                        <div class="record-row"><span style="color:#7f8c8d;">Пока нет рекордов...</span></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Экран Проигрыша -->
+            <div id="game-over-screen" class="menu-box hidden">
+                <h1>КОРЗИНА ПУСТА!</h1>
+                <p>Твой результат: <span id="final-score" style="color:#f1c40f; font-size: 24px;">0</span> очков</p>
+                <p id="phrase-text" style="color: #f1c40f; font-size: 13px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
+                
+                <button id="restart-btn" style="justify-content: center;">
+                    <span>ИГРАТЬ СНОВА</span>
+                </button>
+                
+                <button id="menu-btn" style="background-color: #7f8c8d; box-shadow: 0 5px 0 #566573; margin-top: 15px; justify-content: center;">
+                    <span>В ГЛАВНОЕ МЕНЮ</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- АУДИО СИСТЕМА ---
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch(e) {
+                    console.log("Аудио не поддерживается");
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'lose') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                    gainNode.gain.setValueAtTime(0.5, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'gameover') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.linearRampToValueAtTime(200, now + 0.3);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.6);
+                    gainNode.gain.setValueAtTime(0.2, now);
+                    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.6);
+                    osc.start(now); osc.stop(now + 0.6);
+                }
+            } catch(e) {}
+        }
+
+        // --- СИСТЕМА РЕЙТИНГА ---
+        const recordsList = document.getElementById('records-list');
+        let leaderboard = [];
+        try {
+            leaderboard = JSON.parse(localStorage.getItem('mushroomLeaderboard')) || [];
+        } catch(e) {
+            leaderboard = [];
+        }
+
+        function updateLeaderboardUI() {
+            recordsList.innerHTML = '';
+            if (leaderboard.length === 0) {
+                recordsList.innerHTML = '<div class="record-row"><span style="color:#7f8c8d;">Пока нет рекордов...</span></div>';
+                return;
+            }
+
+            leaderboard.slice(0, 5).forEach((record, index) => {
+                const row = document.createElement('div');
+                row.className = 'record-row';
+                
+                let diffName = 'АКША';
+                if (record.diff === 'easy') diffName = 'ДОРОЖНОЕ';
+                if (record.diff === 'hard') diffName = 'УРЕЙСК';
+
+                row.innerHTML = `
+                    <span class="record-rank">#${index + 1}</span>
+                    <span class="record-score">${record.score}</span>
+                    <span class="record-diff">${diffName}</span>
+                `;
+                recordsList.appendChild(row);
+            });
+        }
+
+        function saveScore(finalScore, difficulty) {
+            if (finalScore === 0) return; 
+
+            leaderboard.push({ score: finalScore, diff: difficulty });
+            leaderboard.sort((a, b) => b.score - a.score);
+            leaderboard = leaderboard.slice(0, 10);
+            
+            try {
+                localStorage.setItem('mushroomLeaderboard', JSON.stringify(leaderboard));
+            } catch(e) {}
+            
+            updateLeaderboardUI();
+        }
+
+        // --- ОСНОВНАЯ ЛОГИКА ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('game-container');
+        
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        
+        const btnEasy = document.getElementById('btn-easy');
+        const btnNormal = document.getElementById('btn-normal');
+        const btnHard = document.getElementById('btn-hard');
+        const restartBtn = document.getElementById('restart-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        
+        const finalScoreEl = document.getElementById('final-score');
+        const phraseTextEl = document.getElementById('phrase-text');
+        
+        const hud = document.getElementById('hud');
+        const scoreDisplay = document.getElementById('score-display');
+        const livesDisplay = document.getElementById('lives-display');
+
+        const phrases = [
+            "Ваа, ты пашто голоуши то по зиме шасташ? Быром напялил шапку!",
+            "Неее, пойду обутки и монатки упучканые пошиньгаю в бане.",
+            "Ты чё моя болташ? Грибы-то в лесу, а не в корзине!",
+            "Вот так всё браво и растёть!",
+            "Ну ты и Кеша-курощуп, даже груздь поймать не смог.",
+            "Харэ дурью маяться, как зунтугло, делай бравенько!",
+            "Ой, ты какой бравенький, а грибочков-то маловато.",
+            "Сзади хомут, Ермолаем зовут — вот твой результат.",
+            "Дикошарый ты какой-то, аист же!",
+            "Ты мояточка, не расстраивайся, попробуй ещё раз."
+        ];
+
+        let canvasWidth = 800;
+        let canvasHeight = 600;
+        let scaleFactor = 1;
+
+        function resizeCanvas() {
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            canvasWidth = rect.width;
+            canvasHeight = rect.height;
+            ctx.imageSmoothingEnabled = false;
+            scaleFactor = Math.min(canvasWidth / 800, canvasHeight / 600);
+            if (scaleFactor < 0.6) scaleFactor = 0.6;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        let score = 0;
+        let lives = 3;
+        let isGameOver = false;
+        let isGameRunning = false;
+        let spawnTimer = 0;
+        
+        let currentDifficulty = 'normal';
+        let spawnInterval = 60;
+        let fallSpeedBase = 2.0;
+        let maxMushrooms = 7;
+
+        let mushrooms = [];
+        let particles = [];
+
+        const mushroomTypes = [
+            { name: 'Маслёнок', stem: '#d4a373', cap: '#8b4513', dots: false, points: 10, capType: 'round' },
+            { name: 'Рыжик', stem: '#f5cba7', cap: '#e67e22', dots: false, points: 15, capType: 'flat' },
+            { name: 'Груздь', stem: '#fdfefe', cap: '#f0f3f4', dots: true, points: 20, capType: 'flat' },
+            { name: 'Подосиновик', stem: '#ecf0f1', cap: '#c0392b', dots: false, points: 25, capType: 'round' }
+        ];
+
+        class Mushroom {
+            constructor() {
+                this.type = mushroomTypes[Math.floor(Math.random() * mushroomTypes.length)];
+                this.baseRadius = 35 * scaleFactor;
+                if (this.baseRadius < 25) this.baseRadius = 25;
+                this.radius = this.baseRadius;
+                
+                this.x = Math.random() * (canvasWidth - this.radius * 2) + this.radius;
+                this.y = -this.radius * 2;
+                
+                this.speed = (fallSpeedBase + Math.random() * 1.5) * scaleFactor;
+                this.speed += (score * 0.02); 
+                
+                this.rotation = (Math.random() - 0.5) * 0.5;
+                this.rotSpeed = (Math.random() - 0.5) * 0.02;
+                this.clicked = false;
+                this.opacity = 1;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotSpeed;
+                if (this.y - this.radius > canvasHeight && !this.clicked) {
+                    this.clicked = true;
+                    loseLife();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.globalAlpha = this.opacity;
+
+                let r = this.radius;
+                let stemW = r * 0.35;
+                let stemH = r * 0.9;
+
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(0, stemH/2, r * 0.8, r * 0.2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = this.type.stem;
+                ctx.beginPath();
+                ctx.moveTo(-stemW/2, 0);
+                ctx.lineTo(-stemW/2.5, stemH);
+                ctx.lineTo(stemW/2.5, stemH);
+                ctx.lineTo(stemW/2, 0);
+                ctx.fill();
+
+                ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                ctx.fillRect(-stemW/4, 0, 2, stemH);
+                ctx.fillRect(stemW/4, 0, 2, stemH);
+
+                ctx.fillStyle = this.type.cap;
+                ctx.beginPath();
+                if (this.type.capType === 'round') {
+                    ctx.arc(0, 0, r, Math.PI, 0);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r, r * 0.2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.ellipse(0, -r * 0.1, r * 1.1, r * 0.4, 0, Math.PI, 0);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r * 1.1, r * 0.15, 0, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fill();
+                }
+
+                if (this.type.dots) {
+                    ctx.fillStyle = '#bdc3c7';
+                    ctx.beginPath();
+                    ctx.arc(-r * 0.4, -r * 0.3, r * 0.1, 0, Math.PI * 2);
+                    ctx.arc(r * 0.3, -r * 0.4, r * 0.12, 0, Math.PI * 2);
+                    ctx.arc(0, -r * 0.1, r * 0.08, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(-r * 0.3, -r * 0.5, r * 0.2, r * 0.1, -Math.PI/4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            checkClick(mx, my) {
+                if (this.clicked) return false;
+                let dx = mx - this.x;
+                let dy = my - this.y;
+                return Math.sqrt(dx * dx + dy * dy) < this.radius * 1.3;
+            }
+
+            pop() {
+                this.clicked = true;
+                this.opacity = 0;
+                for (let i = 0; i < 12; i++) {
+                    particles.push({
+                        x: this.x, y: this.y,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        color: this.type.cap,
+                        life: 1.0, size: Math.random() * 6 + 2
+                    });
+                }
+            }
+        }
+
+        function spawnMushroom() {
+            if (mushrooms.length > maxMushrooms) return;
+            let spawnChance = currentDifficulty === 'hard' ? 0.95 : (currentDifficulty === 'easy' ? 0.5 : 0.75);
+            if (Math.random() < spawnChance) {
+                mushrooms.push(new Mushroom());
+            }
+        }
+
+        function loseLife() {
+            lives--;
+            livesDisplay.innerText = lives;
+            playSound('lose');
+            
+            container.animate([
+                { transform: 'translate(0, 0)' },
+                { transform: 'translate(-10px, 5px)' },
+                { transform: 'translate(10px, -5px)' },
+                { transform: 'translate(0, 0)' }
+            ], { duration: 200, iterations: 1 });
+
+            if (lives <= 0) endGame();
+        }
+
+        function endGame() {
+            isGameOver = true;
+            isGameRunning = false;
+            finalScoreEl.innerText = score;
+            playSound('gameover');
+
+            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+            phraseTextEl.innerText = randomPhrase;
+            
+            saveScore(score, currentDifficulty);
+
+            hud.classList.add('hidden');
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function startGame(difficulty) {
+            initAudio(); 
+            currentDifficulty = difficulty;
+            
+            if (difficulty === 'easy') {
+                spawnInterval = 80;
+                fallSpeedBase = 1.8;
+                maxMushrooms = 5;
+            } else if (difficulty === 'hard') {
+                spawnInterval = 35;
+                fallSpeedBase = 3.5;
+                maxMushrooms = 12;
+            } else {
+                spawnInterval = 60;
+                fallSpeedBase = 2.5;
+                maxMushrooms = 8;
+            }
+
+            isGameRunning = true;
+            isGameOver = false;
+            score = 0;
+            lives = 3;
+            mushrooms = [];
+            particles = [];
+            spawnTimer = 0;
+            
+            scoreDisplay.innerText = score;
+            livesDisplay.innerText = lives;
+            
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hud.classList.remove('hidden');
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            if (isGameRunning) {
+                spawnTimer++;
+                if (spawnTimer >= spawnInterval) {
+                    spawnMushroom();
+                    spawnTimer = 0;
+                    if (spawnInterval > 20 && currentDifficulty !== 'easy') spawnInterval -= 0.3;
+                }
+
+                for (let i = mushrooms.length - 1; i >= 0; i--) {
+                    let m = mushrooms[i];
+                    m.update();
+                    m.draw();
+                    if (m.y - m.radius > canvasHeight || m.clicked) mushrooms.splice(i, 1);
+                }
+
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    let p = particles[i];
+                    p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life -= 0.03; p.size *= 0.95;
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                    ctx.globalAlpha = 1;
+                    if (p.life <= 0 || p.size < 1) particles.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleInput(e) {
+            if (!isGameRunning) return;
+            
+            let rect = canvas.getBoundingClientRect();
+            let clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            let clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+
+            let mx = clientX - rect.left;
+            let my = clientY - rect.top;
+
+            for (let i = mushrooms.length - 1; i >= 0; i--) {
+                let m = mushrooms[i];
+                if (!m.clicked && m.checkClick(mx, my)) {
+                    m.pop();
+                    score += m.type.points;
+                    scoreDisplay.innerText = score;
+                    playSound('pop');
+                    break;
+                }
+            }
+        }
+
+        // Слушатели
+        canvas.addEventListener('mousedown', handleInput);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(e); }, { passive: false });
+
+        const addTap = (btn, callback) => {
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); callback(); }, { passive: false });
+            btn.addEventListener('click', callback);
+        };
+        
+        addTap(btnEasy, () => startGame('easy'));
+        addTap(btnNormal, () => startGame('normal'));
+        addTap(btnHard, () => startGame('hard'));
+        addTap(restartBtn, () => startGame(currentDifficulty));
+        
+        addTap(menuBtn, () => {
+            gameOverScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        });
+
+        // Инициализация при загрузке
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            updateLeaderboardUI(); 
+            gameLoop();
+        });
+
+        resizeCanvas();
+        updateLeaderboardUI();
+        gameLoop();
+    </script>
+</body>
+</html>
