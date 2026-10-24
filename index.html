@@ -437,7 +437,6 @@
                     gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                     osc.start(now); osc.stop(now + 0.3);
                 } else if (type === 'squirrelCatch') { 
-                    // Звук поимки белки (торжественный)
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(1000, now);
                     osc.frequency.setValueAtTime(1500, now + 0.1);
@@ -556,14 +555,14 @@
 
         const phrases = [
             "Ваа, ты пашто голоуши то по зиме шасташ? Быром напялил шапку!",
-            "Неее, пойду обутки и монатки упучканые пошиньгаю в бане.",
+            "Ты чё как зюзя по лесу шасташ? Холодно же!",
             "Ты чё моя болташ? Грибы-то в лесу, а не в корзине!",
             "Вот так всё браво и растёть!",
             "Ну ты и Кеша-курощуп, даже груздь поймать не смог.",
             "Харэ дурью маяться, как зунтугло, делай бравенько!",
             "Ой, ты какой бравенький, а грибочков-то маловато.",
             "Сзади хомут, Ермолаем зовут — вот твой результат.",
-            "Дикошарый ты какой-то, аист же!",
+            "Ну ты и дикошарый! Даже гриб поймать — и то не смог!",
             "Ты мояточка, не расстраивайся, попробуй ещё раз."
         ];
 
@@ -585,7 +584,6 @@
         let streak = 0, squirrelTimer = 0, timeOfDay = 0, dayCycleTimer = 0;
         let scoreAlreadySaved = false;
 
-        // Переменные белки (теперь её можно поймать)
         let squirrel = {
             active: false, 
             x: -50, 
@@ -594,7 +592,7 @@
             targetY: 0, 
             state: 'idle', 
             timer: 0,
-            caught: false // Флаг, поймана ли она
+            caught: false
         };
 
         const mushroomTypes = [
@@ -636,7 +634,6 @@
                 this.rotation += this.rotSpeed;
                 if (this.y - this.radius > canvasHeight && !this.clicked) {
                     this.clicked = true;
-                    // Мухомор не отнимает жизнь
                     if (!this.type.isDrunk) {
                         loseLife();
                     }
@@ -746,35 +743,29 @@
             }
         }
 
-        // --- ОТРИСОВКА БЕЛКИ (УВЕЛИЧЕНА) ---
         function drawSquirrel() {
             if (!squirrel.active || squirrel.caught) return;
 
             ctx.save();
             ctx.translate(squirrel.x, squirrel.y);
             
-            // Размер белки увеличен до 40
             let r = 40 * scaleFactor; 
 
-            // Хвост (оранжевый, пушистый)
             ctx.fillStyle = '#d35400';
             ctx.beginPath();
             ctx.ellipse(-r * 0.8, -r * 0.2, r * 0.8, r * 0.5, -Math.PI/4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Тело (рыжее)
             ctx.fillStyle = '#e67e22';
             ctx.beginPath();
             ctx.ellipse(0, 0, r * 0.7, r * 0.5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // Голова
             ctx.fillStyle = '#e67e22';
             ctx.beginPath();
             ctx.arc(r * 0.4, -r * 0.1, r * 0.4, 0, Math.PI * 2);
             ctx.fill();
 
-            // Уши (большие)
             ctx.fillStyle = '#d35400';
             ctx.beginPath();
             ctx.moveTo(r * 0.35, -r * 0.5);
@@ -788,19 +779,16 @@
             ctx.lineTo(r * 0.8, -r * 0.45);
             ctx.fill();
 
-            // Глаз
             ctx.fillStyle = '#000';
             ctx.beginPath();
             ctx.arc(r * 0.55, -r * 0.15, r * 0.12, 0, Math.PI * 2);
             ctx.fill();
 
-            // Блик в глазу
             ctx.fillStyle = '#fff';
             ctx.beginPath();
             ctx.arc(r * 0.58, -r * 0.18, r * 0.04, 0, Math.PI * 2);
             ctx.fill();
 
-            // Лапки
             ctx.fillStyle = '#d35400';
             ctx.fillRect(-r * 0.2, r * 0.4, r * 0.3, r * 0.3);
             ctx.fillRect(r * 0.1, r * 0.4, r * 0.3, r * 0.3);
@@ -972,22 +960,18 @@
 
             touchRipples.push({ x: mx, y: my, radius: 5, life: 1.0 });
 
-            // 1. Проверка на клик по БЕЛКЕ
             if (squirrel.active && !squirrel.caught) {
                 let sdx = mx - squirrel.x;
                 let sdy = my - squirrel.y;
                 let sdist = Math.sqrt(sdx*sdx + sdy*sdy);
-                // Радиус клика по белке
                 let squirrelRadius = 40 * scaleFactor * 1.5; 
                 
                 if (sdist < squirrelRadius) {
-                    // Поймали белку!
                     squirrel.caught = true;
-                    score += 1000; // +1000 очков
+                    score += 1000;
                     scoreDisplay.innerText = score;
-                    playSound('squirrelCatch'); // Торжественный звук
+                    playSound('squirrelCatch');
                     
-                    // Спавним кучу золотых частиц
                     for (let i = 0; i < 30; i++) {
                         particles.push({
                             x: squirrel.x, y: squirrel.y,
@@ -997,11 +981,10 @@
                             life: 1.5, size: Math.random() * 10 + 3
                         });
                     }
-                    return; // Выходим, чтобы не задеть грибы под белкой
+                    return;
                 }
             }
 
-            // 2. Проверка на клик по грибам
             let hitCount = 0;
             for (let i = mushrooms.length - 1; i >= 0; i--) {
                 let m = mushrooms[i];
