@@ -579,6 +579,7 @@
 
         let score = 0, lives = 3, isGameOver = false, isGameRunning = false, spawnTimer = 0;
         let currentDifficulty = 'normal';
+        let baseSpawnInterval = 60, baseFallSpeed = 2.0;
         let spawnInterval = 60, fallSpeedBase = 2.0, maxMushrooms = 7;
         let mushrooms = [], particles = [], touchRipples = [];
         let streak = 0, squirrelTimer = 0, timeOfDay = 0, dayCycleTimer = 0;
@@ -620,8 +621,8 @@
                 this.x = Math.random() * (canvasWidth - this.radius * 2) + this.radius;
                 this.y = -this.radius * 2;
                 
+                // Скорость зависит от текущего уровня сложности (fallSpeedBase)
                 this.speed = (fallSpeedBase + Math.random() * 1.5) * scaleFactor;
-                this.speed += (score * 0.01); 
                 
                 this.rotation = (Math.random() - 0.5) * 0.5;
                 this.rotSpeed = (Math.random() - 0.5) * 0.02;
@@ -844,9 +845,26 @@
             initAudio(); 
             currentDifficulty = difficulty;
             
-            if (difficulty === 'easy') { spawnInterval = 80; fallSpeedBase = 1.8; maxMushrooms = 5; }
-            else if (difficulty === 'hard') { spawnInterval = 65; fallSpeedBase = 1.9; maxMushrooms = 5; }
-            else { spawnInterval = 60; fallSpeedBase = 2.5; maxMushrooms = 8; }
+            // БАЗОВЫЕ НАСТРОЙКИ (без учета счета)
+            if (difficulty === 'easy') { 
+                baseSpawnInterval = 80; 
+                baseFallSpeed = 1.8; 
+                maxMushrooms = 5; 
+            }
+            else if (difficulty === 'hard') { 
+                baseSpawnInterval = 65; 
+                baseFallSpeed = 1.9; 
+                maxMushrooms = 5; 
+            }
+            else { 
+                baseSpawnInterval = 60; 
+                baseFallSpeed = 2.5; 
+                maxMushrooms = 8; 
+            }
+
+            // Сбрасываем текущие значения к базовым
+            spawnInterval = baseSpawnInterval;
+            fallSpeedBase = baseFallSpeed;
 
             isGameRunning = true; isGameOver = false; score = 0; lives = 3; streak = 0;
             mushrooms = []; particles = []; touchRipples = []; spawnTimer = 0;
@@ -868,6 +886,19 @@
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             if (isGameRunning) {
+                // --- ПЛАВНОЕ УСЛОЖНЕНИЕ ОТ СЧЕТА ---
+                // 1. Скорость падения растет каждые 200 очков (+0.05 к базовой)
+                //    Максимум +50% к базовой скорости (чтобы не было невозможно)
+                let speedBonus = Math.floor(score / 200) * 0.05;
+                if (speedBonus > 0.5) speedBonus = 0.5; // Ограничитель
+                fallSpeedBase = baseFallSpeed * (1 + speedBonus);
+
+                // 2. Интервал спавна сокращается каждые 300 очков (на 2 кадра)
+                //    Но не менее 30 кадров (безопасный минимум)
+                let intervalReduction = Math.floor(score / 300) * 2;
+                spawnInterval = baseSpawnInterval - intervalReduction;
+                if (spawnInterval < 30) spawnInterval = 30;
+
                 spawnTimer++;
                 if (spawnTimer >= spawnInterval) { spawnMushroom(); spawnTimer = 0; }
                 
