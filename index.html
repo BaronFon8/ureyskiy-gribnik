@@ -189,6 +189,7 @@
             background: rgba(255,255,255,0.1);
             padding: 8px;
             border-radius: 8px;
+            flex-wrap: wrap;
         }
         .bonus-item {
             font-size: 12px;
@@ -197,7 +198,6 @@
             gap: 5px;
         }
 
-        /* Стили для ввода имени */
         #name-input {
             width: 100%;
             padding: 10px;
@@ -216,7 +216,6 @@
             border-color: #e74c3c;
         }
 
-        /* Кнопка сохранения - ЗЕЛЕНАЯ */
         #save-score-btn {
             background-color: #27ae60;
             box-shadow: 0 5px 0 #1e8449;
@@ -307,7 +306,6 @@
         }
         .record-row:last-child { border-bottom: none; }
         
-        /* Обновленные стили для таблицы рекордов */
         .record-rank { color: #f1c40f; width: 25px; text-align: left; }
         .record-name { color: #fff; flex-grow: 1; text-align: left; margin: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100px; }
         .record-score { color: #e74c3c; width: 40px; text-align: right; }
@@ -338,11 +336,11 @@
                 
                 <div class="bonus-legend">
                     <div class="bonus-item">✨ <span style="color:#ffd700;">Золотой</span> (+100)</div>
-                    <div class="bonus-item">🍄 <span style="color:#e74c3c;">Мухомор</span> (Шутка)</div>
+                    <div class="bonus-item">🐿️ <span style="color:#e67e22;">Белка</span> (+1000)</div>
                 </div>
 
                 <p>Кликай по падающим грибам!</p>
-                <p style="color: #e74c3c;">Не упускай гриб</p>
+                <p style="color: #e74c3c;">Не упускай съедобные грибы!</p>
                 
                 <hr style="border-color: #555; margin: 15px 0;">
                 <p style="margin-bottom: 5px;">ВЫБЕРИ СЛОЖНОСТЬ:</p>
@@ -372,7 +370,7 @@
                 </button>
 
                 <div id="leaderboard">
-                    <h2>🏆 ТОП ОХОТНИКОВ</h2>
+                    <h2>🏆 РЕЙТИНГ ГРИБНИКОВ</h2>
                     <div id="records-list">
                         <div class="record-row"><span style="color:#7f8c8d;">Пока нет рекордов...</span></div>
                     </div>
@@ -384,7 +382,6 @@
                 <p>Твой результат: <span id="final-score" style="color:#f1c40f; font-size: 24px;">0</span> очков</p>
                 <p id="phrase-text" style="color: #f1c40f; font-size: 13px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;"></p>
                 
-                <!-- Блок сохранения -->
                 <div id="save-score-block">
                     <input type="text" id="name-input" placeholder="Введите имя" maxlength="10">
                     <button id="save-score-btn" style="justify-content: center;">
@@ -439,6 +436,15 @@
                     gainNode.gain.setValueAtTime(0.2, now);
                     gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
                     osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'squirrelCatch') { 
+                    // Звук поимки белки (торжественный)
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1000, now);
+                    osc.frequency.setValueAtTime(1500, now + 0.1);
+                    osc.frequency.setValueAtTime(2000, now + 0.2);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now); osc.stop(now + 0.4);
                 } else if (type === 'drunk') { 
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(400, now);
@@ -473,7 +479,7 @@
             } catch(e) {}
         }
 
-        // --- СИСТЕМА РЕЙТИНГА С НИКАМИ ---
+        // --- СИСТЕМА РЕЙТИНГА ---
         const recordsList = document.getElementById('records-list');
         let leaderboard = [];
         try { leaderboard = JSON.parse(localStorage.getItem('mushroomLeaderboard')) || []; } catch(e) { leaderboard = []; }
@@ -540,7 +546,7 @@
         const nameInput = document.getElementById('name-input');
         const saveScoreBtn = document.getElementById('save-score-btn');
         const saveScoreBlock = document.getElementById('save-score-block');
-        const saveBtnText = document.getElementById('save-btn-text'); // Текст внутри кнопки
+        const saveBtnText = document.getElementById('save-btn-text');
 
         const finalScoreEl = document.getElementById('final-score');
         const phraseTextEl = document.getElementById('phrase-text');
@@ -579,8 +585,16 @@
         let streak = 0, squirrelTimer = 0, timeOfDay = 0, dayCycleTimer = 0;
         let scoreAlreadySaved = false;
 
+        // Переменные белки (теперь её можно поймать)
         let squirrel = {
-            active: false, x: -50, y: -50, targetX: 0, targetY: 0, state: 'idle', timer: 0
+            active: false, 
+            x: -50, 
+            y: -50, 
+            targetX: 0, 
+            targetY: 0, 
+            state: 'idle', 
+            timer: 0,
+            caught: false // Флаг, поймана ли она
         };
 
         const mushroomTypes = [
@@ -622,7 +636,10 @@
                 this.rotation += this.rotSpeed;
                 if (this.y - this.radius > canvasHeight && !this.clicked) {
                     this.clicked = true;
-                    loseLife();
+                    // Мухомор не отнимает жизнь
+                    if (!this.type.isDrunk) {
+                        loseLife();
+                    }
                 }
             }
 
@@ -729,53 +746,64 @@
             }
         }
 
+        // --- ОТРИСОВКА БЕЛКИ (УВЕЛИЧЕНА) ---
         function drawSquirrel() {
-            if (!squirrel.active) return;
+            if (!squirrel.active || squirrel.caught) return;
+
             ctx.save();
             ctx.translate(squirrel.x, squirrel.y);
-            let r = 25 * scaleFactor; 
+            
+            // Размер белки увеличен до 40
+            let r = 40 * scaleFactor; 
 
+            // Хвост (оранжевый, пушистый)
             ctx.fillStyle = '#d35400';
             ctx.beginPath();
-            ctx.ellipse(-r * 0.8, -r * 0.2, r * 0.7, r * 0.4, -Math.PI/4, 0, Math.PI * 2);
+            ctx.ellipse(-r * 0.8, -r * 0.2, r * 0.8, r * 0.5, -Math.PI/4, 0, Math.PI * 2);
             ctx.fill();
 
+            // Тело (рыжее)
             ctx.fillStyle = '#e67e22';
             ctx.beginPath();
-            ctx.ellipse(0, 0, r * 0.6, r * 0.45, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, r * 0.7, r * 0.5, 0, 0, Math.PI * 2);
             ctx.fill();
 
+            // Голова
             ctx.fillStyle = '#e67e22';
             ctx.beginPath();
-            ctx.arc(r * 0.4, -r * 0.1, r * 0.35, 0, Math.PI * 2);
+            ctx.arc(r * 0.4, -r * 0.1, r * 0.4, 0, Math.PI * 2);
             ctx.fill();
 
+            // Уши (большие)
             ctx.fillStyle = '#d35400';
             ctx.beginPath();
-            ctx.moveTo(r * 0.35, -r * 0.45);
-            ctx.lineTo(r * 0.5, -r * 0.85);
-            ctx.lineTo(r * 0.65, -r * 0.45);
+            ctx.moveTo(r * 0.35, -r * 0.5);
+            ctx.lineTo(r * 0.5, -r * 0.9);
+            ctx.lineTo(r * 0.65, -r * 0.5);
             ctx.fill();
 
             ctx.beginPath();
-            ctx.moveTo(r * 0.55, -r * 0.45);
-            ctx.lineTo(r * 0.7, -r * 0.75);
-            ctx.lineTo(r * 0.8, -r * 0.4);
+            ctx.moveTo(r * 0.55, -r * 0.5);
+            ctx.lineTo(r * 0.7, -r * 0.8);
+            ctx.lineTo(r * 0.8, -r * 0.45);
             ctx.fill();
 
+            // Глаз
             ctx.fillStyle = '#000';
             ctx.beginPath();
-            ctx.arc(r * 0.5, -r * 0.15, r * 0.1, 0, Math.PI * 2);
+            ctx.arc(r * 0.55, -r * 0.15, r * 0.12, 0, Math.PI * 2);
             ctx.fill();
 
+            // Блик в глазу
             ctx.fillStyle = '#fff';
             ctx.beginPath();
-            ctx.arc(r * 0.53, -r * 0.18, r * 0.03, 0, Math.PI * 2);
+            ctx.arc(r * 0.58, -r * 0.18, r * 0.04, 0, Math.PI * 2);
             ctx.fill();
 
+            // Лапки
             ctx.fillStyle = '#d35400';
-            ctx.fillRect(-r * 0.2, r * 0.35, r * 0.25, r * 0.25);
-            ctx.fillRect(r * 0.1, r * 0.35, r * 0.25, r * 0.25);
+            ctx.fillRect(-r * 0.2, r * 0.4, r * 0.3, r * 0.3);
+            ctx.fillRect(r * 0.1, r * 0.4, r * 0.3, r * 0.3);
 
             ctx.restore();
         }
@@ -812,7 +840,6 @@
                 nameInput.value = currentPlayerName;
                 scoreAlreadySaved = false;
                 
-                // СБРОС КНОПКИ СОХРАНЕНИЯ В ЗЕЛЕНЫЙ ЦВЕТ
                 saveBtnText.innerText = 'СОХРАНИТЬ РЕКОРД';
                 saveScoreBtn.style.backgroundColor = '#27ae60';
                 saveScoreBtn.style.boxShadow = '0 5px 0 #1e8449';
@@ -838,6 +865,7 @@
             squirrelTimer = 0; dayCycleTimer = 0; timeOfDay = 0;
             
             squirrel.active = false;
+            squirrel.caught = false;
             squirrel.state = 'idle';
 
             bgElement.style.filter = 'contrast(1.3) saturate(1.4) blur(2px) brightness(0.6)';
@@ -868,6 +896,7 @@
                 squirrelTimer++;
                 if (squirrelTimer > 1200 && mushrooms.length > 0 && !squirrel.active) {
                     squirrel.active = true;
+                    squirrel.caught = false;
                     squirrel.state = 'runningIn';
                     squirrel.x = -50; squirrel.y = canvasHeight - 50;
                     let targetIndex = Math.floor(Math.random() * mushrooms.length);
@@ -877,7 +906,7 @@
                     squirrelTimer = 0;
                 }
 
-                if (squirrel.active) {
+                if (squirrel.active && !squirrel.caught) {
                     if (squirrel.state === 'runningIn') {
                         let dx = squirrel.targetX - squirrel.x;
                         let dy = squirrel.targetY - squirrel.y;
@@ -943,6 +972,36 @@
 
             touchRipples.push({ x: mx, y: my, radius: 5, life: 1.0 });
 
+            // 1. Проверка на клик по БЕЛКЕ
+            if (squirrel.active && !squirrel.caught) {
+                let sdx = mx - squirrel.x;
+                let sdy = my - squirrel.y;
+                let sdist = Math.sqrt(sdx*sdx + sdy*sdy);
+                // Радиус клика по белке
+                let squirrelRadius = 40 * scaleFactor * 1.5; 
+                
+                if (sdist < squirrelRadius) {
+                    // Поймали белку!
+                    squirrel.caught = true;
+                    score += 1000; // +1000 очков
+                    scoreDisplay.innerText = score;
+                    playSound('squirrelCatch'); // Торжественный звук
+                    
+                    // Спавним кучу золотых частиц
+                    for (let i = 0; i < 30; i++) {
+                        particles.push({
+                            x: squirrel.x, y: squirrel.y,
+                            vx: (Math.random() - 0.5) * 20,
+                            vy: (Math.random() - 0.5) * 20,
+                            color: '#ffd700',
+                            life: 1.5, size: Math.random() * 10 + 3
+                        });
+                    }
+                    return; // Выходим, чтобы не задеть грибы под белкой
+                }
+            }
+
+            // 2. Проверка на клик по грибам
             let hitCount = 0;
             for (let i = mushrooms.length - 1; i >= 0; i--) {
                 let m = mushrooms[i];
@@ -988,7 +1047,6 @@
         addTap(restartBtn, () => startGame(currentDifficulty));
         addTap(menuBtn, () => { gameOverScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); });
 
-        // СОХРАНЕНИЕ РЕКОРДА
         addTap(saveScoreBtn, () => {
             if (scoreAlreadySaved) return;
             
@@ -1003,7 +1061,6 @@
             scoreAlreadySaved = true;
             saveBtnText.innerText = 'СОХРАНЕНО!';
             
-            // Меняем цвет на серый после сохранения
             saveScoreBtn.style.backgroundColor = '#7f8c8d';
             saveScoreBtn.style.boxShadow = '0 5px 0 #566573';
         });
