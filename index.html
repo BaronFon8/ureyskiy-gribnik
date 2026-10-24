@@ -566,6 +566,12 @@
             "Ты мояточка, не расстраивайся, попробуй ещё раз."
         ];
 
+        const comboPhrases = [
+            "Браво та чё!",
+            "Ты моя то",
+            "Путёво!"
+        ];
+
         let canvasWidth = 800, canvasHeight = 600, scaleFactor = 1;
         function resizeCanvas() {
             const rect = container.getBoundingClientRect();
@@ -584,6 +590,11 @@
         let mushrooms = [], particles = [], touchRipples = [];
         let streak = 0, squirrelTimer = 0, timeOfDay = 0, dayCycleTimer = 0;
         let scoreAlreadySaved = false;
+        
+        let popupTexts = [];
+        let nextMilestone = 3000; 
+
+        let nextSquirrelTrigger = 600;
 
         let squirrel = {
             active: false, 
@@ -606,10 +617,13 @@
         class Mushroom {
             constructor() {
                 let rand = Math.random();
+                let drunkChance = 0.10 + (Math.floor(score / 3000) * 0.03); 
+                if (drunkChance > 0.35) drunkChance = 0.35; 
+
                 if (rand < 0.05) {
-                    this.type = { name: 'Золотой', stem: '#ffd700', cap: '#ffaa00', dots: true, points: 100, capType: 'round', isGolden: true };
-                } else if (rand < 0.10) {
-                    this.type = { name: 'Мухомор', stem: '#fdfdfd', cap: '#e74c3c', dots: true, points: 5, capType: 'round', isDrunk: true };
+                    this.type = { name: 'Золотой', stem: '#b8860b', cap: '#ffaa00', dots: true, points: 100, capType: 'golden' };
+                } else if (rand < drunkChance) {
+                    this.type = { name: 'Мухомор', stem: '#fdfdfd', cap: '#d32f2f', dots: true, points: 5, capType: 'amanita', isDrunk: true };
                 } else {
                     this.type = mushroomTypes[Math.floor(Math.random() * mushroomTypes.length)];
                 }
@@ -621,7 +635,6 @@
                 this.x = Math.random() * (canvasWidth - this.radius * 2) + this.radius;
                 this.y = -this.radius * 2;
                 
-                // Скорость зависит от текущего уровня сложности (fallSpeedBase)
                 this.speed = (fallSpeedBase + Math.random() * 1.5) * scaleFactor;
                 
                 this.rotation = (Math.random() - 0.5) * 0.5;
@@ -651,16 +664,13 @@
                 let stemW = r * 0.35;
                 let stemH = r * 0.9;
 
-                if (this.type.isGolden || timeOfDay === 2) {
-                    ctx.shadowColor = this.type.isGolden ? '#ffd700' : '#fff';
-                    ctx.shadowBlur = 15;
-                }
-
+                // Тень
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.beginPath();
                 ctx.ellipse(0, stemH/2, r * 0.8, r * 0.2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
+                // Ножка
                 ctx.fillStyle = this.type.stem;
                 ctx.beginPath();
                 ctx.moveTo(-stemW/2, 0);
@@ -669,56 +679,122 @@
                 ctx.lineTo(stemW/2, 0);
                 ctx.fill();
 
+                // Текстура ножки
                 ctx.fillStyle = 'rgba(0,0,0,0.1)';
                 ctx.fillRect(-stemW/4, 0, 2, stemH);
                 ctx.fillRect(stemW/4, 0, 2, stemH);
 
-                ctx.fillStyle = this.type.cap;
-                if (this.type.capType === 'round') {
+                // --- ОТРИСОВКА ШЛЯПОК ---
+                if (this.type.capType === 'amanita') {
+                    // МУХОМОР
+                    ctx.fillStyle = '#f0f3f4';
+                    ctx.beginPath();
+                    ctx.ellipse(0, stemH * 0.6, stemW * 1.5, stemH * 0.15, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#bdc3c7';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#d32f2f';
+                    ctx.beginPath();
+                    ctx.ellipse(0, -r * 0.1, r * 1.1, r * 0.45, 0, Math.PI, 0);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#f5f5f5';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r * 1.1, r * 0.2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#bdc3c7';
+                    ctx.beginPath();
+                    ctx.ellipse(0, r * 0.1, r * 0.9, r * 0.1, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(-r * 0.5, -r * 0.2, r * 0.15, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#e0e0e0';
+                    ctx.beginPath(); ctx.arc(-r * 0.45, -r * 0.15, r * 0.1, 0, Math.PI * 2); ctx.fill();
+                    
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath(); ctx.arc(r * 0.4, -r * 0.3, r * 0.12, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#e0e0e0';
+                    ctx.beginPath(); ctx.arc(r * 0.45, -r * 0.25, r * 0.08, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath(); ctx.arc(0, -r * 0.4, r * 0.18, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#e0e0e0';
+                    ctx.beginPath(); ctx.arc(r * 0.05, -r * 0.35, r * 0.12, 0, Math.PI * 2); ctx.fill();
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.beginPath();
+                    ctx.ellipse(-r * 0.6, -r * 0.4, r * 0.25, r * 0.1, -Math.PI/4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (this.type.capType === 'golden') {
+                    // ЗОЛОТОЙ ГРИБ (НОВЫЙ ОТЛИВ, БЕЗ БЕЛЫХ ТОЧЕК)
+                    
+                    // 1. Основа шляпки (градиент от светлого к темному)
+                    let gradient = ctx.createLinearGradient(0, -r, 0, 0);
+                    gradient.addColorStop(0, '#fff700'); // Яркий лимонно-желтый
+                    gradient.addColorStop(0.5, '#ffb300'); // Золотой
+                    gradient.addColorStop(1, '#cc7a00'); // Темно-янтарный
+                    
+                    ctx.fillStyle = gradient;
                     ctx.beginPath();
                     ctx.arc(0, 0, r, Math.PI, 0);
                     ctx.fill();
-                    if (this.type.isGolden || this.type.isDrunk) {
-                        ctx.fillStyle = this.type.isGolden ? '#cc8800' : '#bdc3c7';
+                    
+                    // 2. Текстура шляпки (концентрические кольца)
+                    ctx.strokeStyle = 'rgba(204, 122, 0, 0.6)'; // Темно-янтарные полоски
+                    ctx.lineWidth = 2;
+                    for(let i = 1; i <= 3; i++) {
                         ctx.beginPath();
-                        ctx.ellipse(0, 0, r, r * 0.2, 0, 0, Math.PI * 2);
+                        ctx.arc(0, 0, r * (i/4), Math.PI, 0);
+                        ctx.stroke();
+                    }
+
+                    // 3. Низ шляпки (четкий, темный)
+                    ctx.fillStyle = '#a65d00';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, r, r * 0.2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // 4. Четкая обводка (темно-золотой контур)
+                    ctx.strokeStyle = '#8b5a00';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, r, Math.PI, 0);
+                    ctx.stroke();
+
+                } else {
+                    // ОБЫЧНЫЕ ГРИБЫ
+                    ctx.fillStyle = this.type.cap;
+                    if (this.type.capType === 'round') {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r, Math.PI, 0);
+                        ctx.fill();
+                    } else if (this.type.capType === 'chanterelle') {
+                        ctx.beginPath();
+                        ctx.moveTo(-r * 1.1, 0);
+                        ctx.quadraticCurveTo(-r * 1.1, -r * 0.8, -r * 0.4, -r * 0.6);
+                        ctx.quadraticCurveTo(0, -r * 0.5, r * 0.4, -r * 0.6);
+                        ctx.quadraticCurveTo(r * 1.1, -r * 0.8, r * 1.1, 0);
+                        ctx.fill();
+                    } else if (this.type.capType === 'milkcap') {
+                        ctx.beginPath();
+                        ctx.ellipse(0, -r * 0.1, r * 1.1, r * 0.4, 0, 0, Math.PI * 2);
                         ctx.fill();
                     }
-                } else if (this.type.capType === 'chanterelle') {
-                    ctx.beginPath();
-                    ctx.moveTo(-r * 1.1, 0);
-                    ctx.quadraticCurveTo(-r * 1.1, -r * 0.8, -r * 0.4, -r * 0.6);
-                    ctx.quadraticCurveTo(0, -r * 0.5, r * 0.4, -r * 0.6);
-                    ctx.quadraticCurveTo(r * 1.1, -r * 0.8, r * 1.1, 0);
-                    ctx.fill();
-                } else if (this.type.capType === 'milkcap') {
-                    ctx.beginPath();
-                    ctx.ellipse(0, -r * 0.1, r * 1.1, r * 0.4, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-
-                if (this.type.dots) {
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    if (this.type.isDrunk) {
-                        ctx.arc(-r * 0.5, -r * 0.4, r * 0.15, 0, Math.PI * 2);
-                        ctx.arc(r * 0.4, -r * 0.5, r * 0.12, 0, Math.PI * 2);
-                        ctx.arc(0, -r * 0.2, r * 0.18, 0, Math.PI * 2);
-                        ctx.arc(-r * 0.1, -r * 0.7, r * 0.1, 0, Math.PI * 2);
-                        ctx.arc(r * 0.6, -r * 0.1, r * 0.12, 0, Math.PI * 2);
-                    } else {
+                    if (this.type.dots) {
+                        ctx.fillStyle = '#bdc3c7';
+                        ctx.beginPath();
                         ctx.arc(-r * 0.4, -r * 0.3, r * 0.08, 0, Math.PI * 2);
                         ctx.arc(r * 0.3, -r * 0.4, r * 0.1, 0, Math.PI * 2);
                         ctx.arc(0, -r * 0.1, r * 0.06, 0, Math.PI * 2);
+                        ctx.fill();
                     }
-                    ctx.fill();
                 }
-
-                ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                ctx.beginPath();
-                ctx.ellipse(-r * 0.3, -r * 0.5, r * 0.2, r * 0.1, -Math.PI/4, 0, Math.PI * 2);
-                ctx.fill();
-
                 ctx.restore();
             }
 
@@ -805,7 +881,7 @@
 
         function loseLife() {
             lives--;
-            streak = 0;
+            streak = 0; 
             livesDisplay.innerText = lives;
             playSound('lose');
             
@@ -845,7 +921,6 @@
             initAudio(); 
             currentDifficulty = difficulty;
             
-            // БАЗОВЫЕ НАСТРОЙКИ (без учета счета)
             if (difficulty === 'easy') { 
                 baseSpawnInterval = 80; 
                 baseFallSpeed = 1.8; 
@@ -862,14 +937,16 @@
                 maxMushrooms = 8; 
             }
 
-            // Сбрасываем текущие значения к базовым
             spawnInterval = baseSpawnInterval;
             fallSpeedBase = baseFallSpeed;
 
             isGameRunning = true; isGameOver = false; score = 0; lives = 3; streak = 0;
-            mushrooms = []; particles = []; touchRipples = []; spawnTimer = 0;
-            squirrelTimer = 0; dayCycleTimer = 0; timeOfDay = 0;
+            mushrooms = []; particles = []; touchRipples = []; popupTexts = []; spawnTimer = 0;
+            squirrelTimer = 0; dayCycleTimer = 0; timeOfDay = 0; 
+            nextMilestone = 3000; 
             
+            nextSquirrelTrigger = 600 + Math.random() * 200; 
+
             squirrel.active = false;
             squirrel.caught = false;
             squirrel.state = 'idle';
@@ -886,18 +963,15 @@
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             if (isGameRunning) {
-                // --- ПЛАВНОЕ УСЛОЖНЕНИЕ ОТ СЧЕТА ---
-                // 1. Скорость падения растет каждые 200 очков (+0.05 к базовой)
-                //    Максимум +50% к базовой скорости (чтобы не было невозможно)
-                let speedBonus = Math.floor(score / 200) * 0.05;
-                if (speedBonus > 0.5) speedBonus = 0.5; // Ограничитель
+                let currentLevel = Math.floor(score / 3000);
+                let speedBonus = currentLevel * 0.15; 
+                if (speedBonus > 1.5) speedBonus = 1.5; 
+                
                 fallSpeedBase = baseFallSpeed * (1 + speedBonus);
 
-                // 2. Интервал спавна сокращается каждые 300 очков (на 2 кадра)
-                //    Но не менее 30 кадров (безопасный минимум)
-                let intervalReduction = Math.floor(score / 300) * 2;
+                let intervalReduction = currentLevel * 8;
                 spawnInterval = baseSpawnInterval - intervalReduction;
-                if (spawnInterval < 30) spawnInterval = 30;
+                if (spawnInterval < 25) spawnInterval = 25; 
 
                 spawnTimer++;
                 if (spawnTimer >= spawnInterval) { spawnMushroom(); spawnTimer = 0; }
@@ -912,20 +986,19 @@
                     else { bgElement.style.filter = 'contrast(1.2) saturate(1.2) blur(2px) brightness(0.7) sepia(0.2)'; nightOverlay.style.opacity = '0.1'; }
                 }
 
-                squirrelTimer++;
-                if (squirrelTimer > 1200 && mushrooms.length > 0 && !squirrel.active) {
-                    squirrel.active = true;
-                    squirrel.caught = false;
-                    squirrel.state = 'runningIn';
-                    squirrel.x = -50; squirrel.y = canvasHeight - 50;
-                    let targetIndex = Math.floor(Math.random() * mushrooms.length);
-                    squirrel.targetX = mushrooms[targetIndex].x;
-                    squirrel.targetY = mushrooms[targetIndex].y;
-                    playSound('squirrel');
-                    squirrelTimer = 0;
-                }
-
-                if (squirrel.active && !squirrel.caught) {
+                if (!squirrel.active) {
+                    squirrelTimer++;
+                    if (squirrelTimer > nextSquirrelTrigger && mushrooms.length > 0) {
+                        squirrel.active = true;
+                        squirrel.caught = false;
+                        squirrel.state = 'runningIn';
+                        squirrel.x = -50; squirrel.y = canvasHeight - 50;
+                        let targetIndex = Math.floor(Math.random() * mushrooms.length);
+                        squirrel.targetX = mushrooms[targetIndex].x;
+                        squirrel.targetY = mushrooms[targetIndex].y;
+                        playSound('squirrel');
+                    }
+                } else if (squirrel.active && !squirrel.caught) {
                     if (squirrel.state === 'runningIn') {
                         let dx = squirrel.targetX - squirrel.x;
                         let dy = squirrel.targetY - squirrel.y;
@@ -952,7 +1025,13 @@
                         }
                     } else if (squirrel.state === 'runningOut') {
                         squirrel.x += 10 * scaleFactor;
-                        if (squirrel.x > canvasWidth + 50) { squirrel.active = false; squirrel.state = 'idle'; }
+                        if (squirrel.x > canvasWidth + 50) { 
+                            squirrel.active = false; 
+                            squirrel.state = 'idle'; 
+                            
+                            squirrelTimer = 0; 
+                            nextSquirrelTrigger = 600 + Math.random() * 200; 
+                        }
                     }
                 }
 
@@ -961,6 +1040,22 @@
                     m.update();
                     m.draw();
                     if (m.y - m.radius > canvasHeight || m.clicked) mushrooms.splice(i, 1);
+                }
+
+                for (let i = popupTexts.length - 1; i >= 0; i--) {
+                    let pt = popupTexts[i];
+                    pt.y -= 1.5; 
+                    pt.life -= 0.02;
+                    
+                    ctx.fillStyle = `rgba(241, 196, 15, ${pt.life})`;
+                    ctx.font = `bold ${40 * scaleFactor}px 'Russo One'`;
+                    ctx.textAlign = 'center';
+                    ctx.strokeStyle = `rgba(0, 0, 0, ${pt.life})`;
+                    ctx.lineWidth = 6; 
+                    ctx.strokeText(pt.text, pt.x, pt.y);
+                    ctx.fillText(pt.text, pt.x, pt.y);
+                    
+                    if (pt.life <= 0) popupTexts.splice(i, 1);
                 }
 
                 for (let i = particles.length - 1; i >= 0; i--) {
@@ -1012,6 +1107,13 @@
                             life: 1.5, size: Math.random() * 10 + 3
                         });
                     }
+                    
+                    squirrel.x = canvasWidth + 100;
+                    squirrel.active = false;
+                    squirrel.state = 'idle';
+                    
+                    squirrelTimer = 0; 
+                    nextSquirrelTrigger = 600 + Math.random() * 200; 
                     return;
                 }
             }
@@ -1032,10 +1134,22 @@
                     } else {
                         playSound('pop');
                         streak++;
+                        
+                        if (score >= nextMilestone) {
+                            let randomPhrase = comboPhrases[Math.floor(Math.random() * comboPhrases.length)];
+                            popupTexts.push({
+                                text: randomPhrase,
+                                x: canvasWidth / 2,
+                                y: canvasHeight / 2, 
+                                life: 2.0
+                            });
+                            nextMilestone += 3000; 
+                        }
+
                         if (streak >= 5) {
                             score += 50;
                             if (lives < 3) { lives++; livesDisplay.innerText = lives; }
-                            streak = 0;
+                            streak = 0; 
                         }
                     }
                 }
