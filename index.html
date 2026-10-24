@@ -349,7 +349,7 @@
                     <div class="btn-icon">🚚</div>
                     <div class="btn-text">
                         <span>ДОРОЖНОЕ</span>
-                        <span class="difficulty-desc">(Для прогулки)</span>
+                        <span class="difficulty-desc">(3 жизни)</span>
                     </div>
                 </button>
                 
@@ -357,7 +357,7 @@
                     <div class="btn-icon">🌲</div>
                     <div class="btn-text">
                         <span>АКША</span>
-                        <span class="difficulty-desc">(Обычный лес)</span>
+                        <span class="difficulty-desc">(2 жизни)</span>
                     </div>
                 </button>
                 
@@ -365,7 +365,7 @@
                     <div class="btn-icon">🍄</div>
                     <div class="btn-text">
                         <span>УРЕЙСК</span>
-                        <span class="difficulty-desc">(Хардкор)</span>
+                        <span class="difficulty-desc">(1 жизнь)</span>
                     </div>
                 </button>
 
@@ -585,14 +585,15 @@
 
         let score = 0, lives = 3, isGameOver = false, isGameRunning = false, spawnTimer = 0;
         let currentDifficulty = 'normal';
-        let baseSpawnInterval = 60, baseFallSpeed = 2.0;
-        let spawnInterval = 60, fallSpeedBase = 2.0, maxMushrooms = 7;
+        let baseSpawnInterval = 50, baseFallSpeed = 2.3; 
+        let spawnInterval = 50, fallSpeedBase = 2.3;
+        let maxMushrooms = 8;
         let mushrooms = [], particles = [], touchRipples = [];
         let streak = 0, squirrelTimer = 0, timeOfDay = 0, dayCycleTimer = 0;
         let scoreAlreadySaved = false;
         
         let popupTexts = [];
-        let nextMilestone = 3000; 
+        let nextMilestone = 2000; // УСЛОЖНЕНИЕ И ПОХВАЛА КАЖДЫЕ 2000
 
         let nextSquirrelTrigger = 600;
 
@@ -617,7 +618,7 @@
         class Mushroom {
             constructor() {
                 let rand = Math.random();
-                let drunkChance = 0.10 + (Math.floor(score / 3000) * 0.03); 
+                let drunkChance = 0.10 + (Math.floor(score / 2000) * 0.03); 
                 if (drunkChance > 0.35) drunkChance = 0.35; 
 
                 if (rand < 0.05) {
@@ -732,21 +733,18 @@
                     ctx.fill();
 
                 } else if (this.type.capType === 'golden') {
-                    // ЗОЛОТОЙ ГРИБ (НОВЫЙ ОТЛИВ, БЕЗ БЕЛЫХ ТОЧЕК)
-                    
-                    // 1. Основа шляпки (градиент от светлого к темному)
+                    // ЗОЛОТОЙ ГРИБ
                     let gradient = ctx.createLinearGradient(0, -r, 0, 0);
-                    gradient.addColorStop(0, '#fff700'); // Яркий лимонно-желтый
-                    gradient.addColorStop(0.5, '#ffb300'); // Золотой
-                    gradient.addColorStop(1, '#cc7a00'); // Темно-янтарный
+                    gradient.addColorStop(0, '#fff700');
+                    gradient.addColorStop(0.5, '#ffb300');
+                    gradient.addColorStop(1, '#cc7a00');
                     
                     ctx.fillStyle = gradient;
                     ctx.beginPath();
                     ctx.arc(0, 0, r, Math.PI, 0);
                     ctx.fill();
                     
-                    // 2. Текстура шляпки (концентрические кольца)
-                    ctx.strokeStyle = 'rgba(204, 122, 0, 0.6)'; // Темно-янтарные полоски
+                    ctx.strokeStyle = 'rgba(204, 122, 0, 0.6)';
                     ctx.lineWidth = 2;
                     for(let i = 1; i <= 3; i++) {
                         ctx.beginPath();
@@ -754,13 +752,11 @@
                         ctx.stroke();
                     }
 
-                    // 3. Низ шляпки (четкий, темный)
                     ctx.fillStyle = '#a65d00';
                     ctx.beginPath();
                     ctx.ellipse(0, 0, r, r * 0.2, 0, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // 4. Четкая обводка (темно-золотой контур)
                     ctx.strokeStyle = '#8b5a00';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
@@ -875,8 +871,7 @@
 
         function spawnMushroom() {
             if (mushrooms.length > maxMushrooms) return;
-            let spawnChance = currentDifficulty === 'hard' ? 0.8 : (currentDifficulty === 'easy' ? 0.5 : 0.75);
-            if (Math.random() < spawnChance) mushrooms.push(new Mushroom());
+            if (Math.random() < 0.8) mushrooms.push(new Mushroom());
         }
 
         function loseLife() {
@@ -921,29 +916,19 @@
             initAudio(); 
             currentDifficulty = difficulty;
             
+            // --- РАЗНЫЕ ЖИЗНИ, ОДИНАКОВАЯ СЛОЖНОСТЬ ---
             if (difficulty === 'easy') { 
-                baseSpawnInterval = 80; 
-                baseFallSpeed = 1.8; 
-                maxMushrooms = 5; 
-            }
-            else if (difficulty === 'hard') { 
-                baseSpawnInterval = 65; 
-                baseFallSpeed = 1.9; 
-                maxMushrooms = 5; 
-            }
-            else { 
-                baseSpawnInterval = 60; 
-                baseFallSpeed = 2.5; 
-                maxMushrooms = 8; 
+                lives = 3; 
+            } else if (difficulty === 'normal') { 
+                lives = 2; 
+            } else if (difficulty === 'hard') { 
+                lives = 1; 
             }
 
-            spawnInterval = baseSpawnInterval;
-            fallSpeedBase = baseFallSpeed;
-
-            isGameRunning = true; isGameOver = false; score = 0; lives = 3; streak = 0;
+            isGameRunning = true; isGameOver = false; score = 0; streak = 0;
             mushrooms = []; particles = []; touchRipples = []; popupTexts = []; spawnTimer = 0;
             squirrelTimer = 0; dayCycleTimer = 0; timeOfDay = 0; 
-            nextMilestone = 3000; 
+            nextMilestone = 2000; // СБРОС
             
             nextSquirrelTrigger = 600 + Math.random() * 200; 
 
@@ -963,7 +948,7 @@
             ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             if (isGameRunning) {
-                let currentLevel = Math.floor(score / 3000);
+                let currentLevel = Math.floor(score / 2000); // УСЛОЖНЕНИЕ КАЖДЫЕ 2000
                 let speedBonus = currentLevel * 0.15; 
                 if (speedBonus > 1.5) speedBonus = 1.5; 
                 
@@ -1135,6 +1120,7 @@
                         playSound('pop');
                         streak++;
                         
+                        // ПОХВАЛЫ И УСЛОЖНЕНИЕ КАЖДЫЕ 2000
                         if (score >= nextMilestone) {
                             let randomPhrase = comboPhrases[Math.floor(Math.random() * comboPhrases.length)];
                             popupTexts.push({
@@ -1143,12 +1129,12 @@
                                 y: canvasHeight / 2, 
                                 life: 2.0
                             });
-                            nextMilestone += 3000; 
+                            nextMilestone += 2000; 
                         }
 
+                        // УБРАН БОНУС ЗА 5 ПОДРЯД (ЖИЗНИ НЕ ВОЗРАСТАЮТ)
                         if (streak >= 5) {
-                            score += 50;
-                            if (lives < 3) { lives++; livesDisplay.innerText = lives; }
+                            // Просто сбрасываем серию, не давая жизнь
                             streak = 0; 
                         }
                     }
